@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Would I Lie to You - Live Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .game-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .truth-count {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .current-round {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .statement {
+            font-size: 1.3rem;
+            font-style: italic;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .voting-section {
+            margin-top: 20px;
+        }
+
+        .vote-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .vote-btn {
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 15px;
+        }
+
+        .vote-btn.truth {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+
+        .vote-btn.lie {
+            background: linear-gradient(45deg, #dc3545, #e74c3c);
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .score-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .score-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .score {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status-indicator {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .status-ready {
+            background: #28a745;
+        }
+
+        .status-waiting {
+            background: #ffc107;
+            color: #000;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .game-section {
+                padding: 20px;
+            }
+
+            .vote-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .game-controls {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Would I Lie to You?</h1>
+            <p>The ultimate truth or lie party game</p>
+        </div>
+
+        <!-- Setup Phase -->
+        <div id="setup-phase">
+            <div class="game-section">
+                <h2 class="section-title">Join the Game</h2>
+                <div class="input-group">
+                    <label for="player-name">Your Name:</label>
+                    <input type="text" id="player-name" placeholder="Enter your name">
+                </div>
+                <button class="btn" onclick="joinGame()">Join Game</button>
+            </div>
+
+            <div class="game-section" id="truth-submission" style="display: none;">
+                <h2 class="section-title">Submit Your Truths</h2>
+                <p style="margin-bottom: 15px;">Submit 3-5 interesting true facts about yourself. These will be mixed with lies for other players to guess!</p>
+                <div class="input-group">
+                    <label for="truth-input">Add a True Statement:</label>
+                    <textarea id="truth-input" placeholder="Example: I once met a celebrity at a coffee shop and didn't recognize them until later..."></textarea>
+                </div>
+                <button class="btn btn-secondary" onclick="addTruth()">Add Truth</button>
+                
+                <div id="my-truths" style="margin-top: 20px;">
+                    <h3>Your Submitted Truths:</h3>
+                    <div id="truths-list"></div>
+                </div>
+            </div>
+
+            <div class="game-section">
+                <h2 class="section-title">Players</h2>
+                <div id="players-list" class="players-grid"></div>
+                <div class="game-controls">
+                    <button class="btn" onclick="startGame()" id="start-btn" disabled>Start Game</button>
+                    <button class="btn btn-secondary" onclick="resetGame()">Reset Game</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Phase -->
+        <div id="game-phase" class="hidden">
+            <div class="game-section">
+                <h2 class="section-title">Round <span id="round-number">1</span></h2>
+                <div class="current-round">
+                    <h3>Current Player: <span id="current-player-name"></span></h3>
+                    <div class="statement" id="current-statement"></div>
+                    
+                    <div class="voting-section" id="voting-section">
+                        <h4>What do you think?</h4>
+                        <div class="vote-buttons">
+                            <button class="btn vote-btn truth" onclick="vote('truth')">That's the TRUTH!</button>
+                            <button class="btn vote-btn lie" onclick="vote('lie')">That's a LIE!</button>
+                        </div>
+                        <p id="voting-status"></p>
+                    </div>
+
+                    <div class="results hidden" id="round-results">
+                        <h4>Results:</h4>
+                        <p id="reveal-text"></p>
+                        <div id="votes-breakdown"></div>
+                        <button class="btn" onclick="nextRound()" id="next-round-btn">Next Round</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-section">
+                <h2 class="section-title">Scoreboard</h2>
+                <div id="scoreboard" class="score-board"></div>
+            </div>
+        </div>
+
+        <!-- Final Results -->
+        <div id="final-results" class="game-section hidden">
+            <h2 class="section-title">🎉 Final Results!</h2>
+            <div id="final-scoreboard"></div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" onclick="playAgain()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            players: [],
+            currentPlayer: null,
+            currentRound: 1,
+            totalRounds: 0,
+            gameStarted: false,
+            votingOpen: false,
+            votes: {},
+            scores: {},
+            usedTruths: [],
+            currentStatement: null,
+            isCurrentStatementTrue: false
+        };
+
+        // Join the game
+        function joinGame() {
+            const nameInput = document.getElementById('player-name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                alert('Please enter your name!');
+                return;
+            }
+
+            if (gameState.players.find(p => p.name === name)) {
+                alert('A player with that name already exists!');
+                return;
+            }
+
+            const player = {
+                name: name,
+                truths: [],
+                id: Date.now() + Math.random()
+            };
+
+            gameState.players.push(player);
+            gameState.scores[name] = 0;
+            
+            nameInput.value = '';
+            document.getElementById('truth-submission').style.display = 'block';
+            
+            updatePlayersDisplay();
+            updateStartButton();
+        }
+
+        // Add a truth
+        function addTruth() {
+            const truthInput = document.getElementById('truth-input');
+            const truth = truthInput.value.trim();
+            
+            if (!truth) {
+                alert('Please enter a truth!');
+                return;
+            }
+
+            const playerName = getCurrentPlayerName();
+            if (!playerName) {
+                alert('Please join the game first!');
+                return;
+            }
+
+            const player = gameState.players.find(p => p.name === playerName);
+            if (player && player.truths.length < 5) {
+                player.truths.push(truth);
+                truthInput.value = '';
+                updateMyTruthsDisplay();
+                updatePlayersDisplay();
+                updateStartButton();
+            } else {
+                alert('You can only submit up to 5 truths!');
+            }
+        }
+
+        // Get current player name (simulated - in a real app this would be session-based)
+        function getCurrentPlayerName() {
+            // For this demo, we'll use the last player who joined
+            return gameState.players.length > 0 ? gameState.players[gameState.players.length - 1].name : null;
+        }
+
+        // Update my truths display
+        function updateMyTruthsDisplay() {
+            const playerName = getCurrentPlayerName();
+            if (!playerName) return;
+
+            const player = gameState.players.find(p => p.name === playerName);
+            const truthsList = document.getElementById('truths-list');
+            
+            if (player && player.truths.length > 0) {
+                truthsList.innerHTML = player.truths.map((truth, index) => 
+                    `<div style="background: rgba(255,255,255,0.1); padding: 10px; margin: 5px 0; border-radius: 5px;">
+                        ${index + 1}. ${truth}
+                        <button class="btn btn-small" style="float: right; margin-left: 10px;" onclick="removeTruth(${index})">Remove</button>
+                    </div>`
+                ).join('');
+            } else {
+                truthsList.innerHTML = '<p>No truths submitted yet.</p>';
+            }
+        }
+
+        // Remove a truth
+        function removeTruth(index) {
+            const playerName = getCurrentPlayerName();
+            const player = gameState.players.find(p => p.name === playerName);
+            if (player) {
+                player.truths.splice(index, 1);
+                updateMyTruthsDisplay();
+                updatePlayersDisplay();
+                updateStartButton();
+            }
+        }
+
+        // Update players display
+        function updatePlayersDisplay() {
+            const playersList = document.getElementById('players-list');
+            playersList.innerHTML = gameState.players.map(player => {
+                const truthCount = player.truths.length;
+                const status = truthCount >= 3 ? 'Ready' : 'Needs more truths';
+                const statusClass = truthCount >= 3 ? 'status-ready' : 'status-waiting';
+                
+                return `
+                    <div class="player-card">
+                        <div class="player-name">${player.name}</div>
+                        <div class="truth-count">${truthCount} truths submitted</div>
+                        <span class="status-indicator ${statusClass}">${status}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update start button
+        function updateStartButton() {
+            const startBtn = document.getElementById('start-btn');
+            const canStart = gameState.players.length >= 2 && 
+                            gameState.players.every(p => p.truths.length >= 3);
+            startBtn.disabled = !canStart;
+        }
+
+        // Start the game
+        function startGame() {
+            if (gameState.players.length < 2) {
+                alert('Need at least 2 players to start!');
+                return;
+            }
+
+            if (!gameState.players.every(p => p.truths.length >= 3)) {
+                alert('All players need to submit at least 3 truths!');
+                return;
+            }
+
+            gameState.gameStarted = true;
+            gameState.totalRounds = gameState.players.length * 2; // 2 rounds per player
+            
+            document.getElementById('setup-phase').classList.add('hidden');
+            document.getElementById('game-phase').classList.remove('hidden');
+            
+            startNewRound();
+        }
+
+        // Start a new round
+        function startNewRound() {
+            if (gameState.currentRound > gameState.totalRounds) {
+                endGame();
+                return;
+            }
+
+            // Select random player and statement
+            const availablePlayers = gameState.players.filter(p => p.truths.some(t => !gameState.usedTruths.includes(t)));
+            
+            if (availablePlayers.length === 0) {
+                endGame();
+                return;
+            }
+
+            const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+            const availableTruths = randomPlayer.truths.filter(t => !gameState.usedTruths.includes(t));
+            
+            // Decide if we'll use a truth or generate a lie
+            const useTruth = Math.random() < 0.6; // 60% chance of truth
+            
+            if (useTruth && availableTruths.length > 0) {
+                const truthIndex = Math.floor(Math.random() * availableTruths.length);
+                gameState.currentStatement = availableTruths[truthIndex];
+                gameState.isCurrentStatementTrue = true;
+                gameState.usedTruths.push(gameState.currentStatement);
+            } else {
+                gameState.currentStatement = generateLie(randomPlayer);
+                gameState.isCurrentStatementTrue = false;
+            }
+
+            gameState.currentPlayer = randomPlayer.name;
+            gameState.votes = {};
+            gameState.votingOpen = true;
+
+            updateRoundDisplay();
+        }
+
+        // Generate a believable lie
+        function generateLie(player) {
+            const lies = [
+                "I once accidentally joined a flash mob thinking it was a queue for free samples",
+                "I taught my pet goldfish to recognize different classical composers",
+                "I won a local competition for solving Rubik's cubes blindfolded",
+                "I once got trapped in an elevator with a minor celebrity for 3 hours",
+                "I accidentally became the mascot for a sports team for an entire season",
+                "I discovered a new species of mushroom in my backyard",
+                "I can juggle flaming torches while riding a unicycle",
+                "I once worked as a professional food taster for a cat food company",
+                "I hold the world record for the longest continuous yodel",
+                "I accidentally started a small riot at a medieval renaissance fair"
+            ];
+            
+            return lies[Math.floor(Math.random() * lies.length)];
+        }
+
+        // Update round display
+        function updateRoundDisplay() {
+            document.getElementById('round-number').textContent = gameState.currentRound;
+            document.getElementById('current-player-name').textContent = gameState.currentPlayer;
+            document.getElementById('current-statement').textContent = `"${gameState.currentStatement}"`;
+            
+            document.getElementById('voting-section').classList.remove('hidden');
+            document.getElementById('round-results').classList.add('hidden');
+            document.getElementById('voting-status').textContent = '';
+            
+            updateScoreboard();
+        }
+
+        // Vote on current statement
+        function vote(voteType) {
+            if (!gameState.votingOpen) return;
+
+            const voterName = getCurrentPlayerName();
+            if (!voterName || voterName === gameState.currentPlayer) {
+                alert("You can't vote on your own statement!");
+                return;
+            }
+
+            gameState.votes[voterName] = voteType;
+            
+            const totalVoters = gameState.players.length - 1; // Exclude current player
+            const votesCount = Object.keys(gameState.votes).length;
+            
+            document.getElementById('voting-status').textContent = 
+                `${votesCount} of ${totalVoters} players have voted`;
+            
+            if (votesCount === totalVoters) {
+                endVoting();
+            }
+        }
+
+        // End voting and show results
+        function endVoting() {
+            gameState.votingOpen = false;
+            
+            // Calculate scores
+            const truthVotes = Object.values(gameState.votes).filter(v => v === 'truth').length;
+            const lieVotes = Object.values(gameState.votes).filter(v => v === 'lie').length;
+            
+            // Award points to correct guessers
+            Object.entries(gameState.votes).forEach(([voter, vote]) => {
+                const correct = (vote === 'truth' && gameState.isCurrentStatementTrue) || 
+                               (vote === 'lie' && !gameState.isCurrentStatementTrue);
+                if (correct) {
+                    gameState.scores[voter] += 1;
+                }
+            });
+
+            // Bonus points for the current player if they fooled people
+            if (!gameState.isCurrentStatementTrue) {
+                const fooledCount = Object.values(gameState.votes).filter(v => v === 'truth').length;
+                gameState.scores[gameState.currentPlayer] += fooledCount;
+            }
+
+            // Show results
+            const revealText = gameState.isCurrentStatementTrue ? 
+                "That was actually TRUE! 🎯" : "That was a LIE! 🕵️";
+            
+            document.getElementById('reveal-text').textContent = revealText;
+            document.getElementById('votes-breakdown').innerHTML = `
+                <p>Truth votes: ${truthVotes} | Lie votes: ${lieVotes}</p>
+                <p>Correct guessers get 1 point each!</p>
+                ${!gameState.isCurrentStatementTrue ? `<p>${gameState.currentPlayer} gets ${truthVotes} bonus points for fooling people!</p>` : ''}
+            `;
+            
+            document.getElementById('voting-section').classList.add('hidden');
+            document.getElementById('round-results').classList.remove('hidden');
+            
+            updateScoreboard();
+        }
+
+        // Next round
+        function nextRound() {
+            gameState.currentRound++;
+            startNewRound();
+        }
+
+        // Update scoreboard
+        function updateScoreboard() {
+            const scoreboard = document.getElementById('scoreboard');
+            const sortedPlayers = Object.entries(gameState.scores)
+                .sort(([,a], [,b]) => b - a);
+            
+            scoreboard.innerHTML = sortedPlayers.map(([name, score], index) => `
+                <div class="score-card">
+                    <div class="player-name">${index + 1}. ${name}</div>
+                    <div class="score">${score}</div>
+                </div>
+            `).join('');
+        }
+
+        // End game
+        function endGame() {
+            document.getElementById('game-phase').classList.add('hidden');
+            document.getElementById('final-results').classList.remove('hidden');
+            
+            const sortedPlayers = Object.entries(gameState.scores)
+                .sort(([,a], [,b]) => b - a);
+            
+            const finalScoreboard = document.getElementById('final-scoreboard');
+            finalScoreboard.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h3>🏆 Winner: ${sortedPlayers[0][0]} with ${sortedPlayers[0][1]} points!</h3>
+                </div>
+                <div class="score-board">
+                    ${sortedPlayers.map(([name, score], index) => `
+                        <div class="score-card">
+                            <div class="player-name">${index + 1}. ${name}</div>
+                            <div class="score">${score} points</div>
+                            ${index === 0 ? '<div style="color: gold;">🏆 Champion!</div>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Play again
+        function playAgain() {
+            resetGame();
+        }
+
+        // Reset game
+        function resetGame() {
+            gameState = {
+                players: [],
+                currentPlayer: null,
+                currentRound: 1,
+                totalRounds: 0,
+                gameStarted: false,
+                votingOpen: false,
+                votes: {},
+                scores: {},
+                usedTruths: [],
+                currentStatement: null,
+                isCurrentStatementTrue: false
+            };
+            
+            document.getElementById('setup-phase').classList.remove('hidden');
+            document.getElementById('game-phase').classList.add('hidden');
+            document.getElementById('final-results').classList.add('hidden');
+            document.getElementById('truth-submission').style.display = 'none';
+            
+            document.getElementById('player-name').value = '';
+            document.getElementById('truth-input').value = '';
+            
+            updatePlayersDisplay();
+            updateMyTruthsDisplay();
+            updateStartButton();
+        }
+
+        // Initialize
+        updatePlayersDisplay();
+        updateStartButton();
+    </script>
+</body>
+</html>
