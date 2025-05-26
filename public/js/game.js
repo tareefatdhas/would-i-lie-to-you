@@ -508,6 +508,28 @@ function showVotingSection() {
     elements.roundResults.classList.add('hidden');
     elements.votingStatus.textContent = '';
     
+    // Show discussion phase first
+    document.getElementById('discussion-phase').classList.remove('hidden');
+    document.getElementById('voting-phase').classList.add('hidden');
+    
+    // Check if current player should see discussion
+    const isCurrentPlayer = gameState.currentRound && 
+                           gameState.currentRound.currentPlayer.name === gameState.currentPlayer.name;
+    
+    if (isCurrentPlayer) {
+        document.getElementById('discussion-timer').textContent = "You're the current player - wait for others to discuss and vote!";
+        document.getElementById('start-voting-btn').style.display = 'none';
+    } else {
+        document.getElementById('discussion-timer').textContent = "Discuss with your group: Truth or Lie?";
+        document.getElementById('start-voting-btn').style.display = 'block';
+    }
+}
+
+function startVotingPhase() {
+    // Hide discussion, show voting
+    document.getElementById('discussion-phase').classList.add('hidden');
+    document.getElementById('voting-phase').classList.remove('hidden');
+    
     // Enable vote buttons if not current player
     const voteButtons = document.querySelectorAll('.vote-btn');
     const isCurrentPlayer = gameState.currentRound && 
@@ -519,6 +541,8 @@ function showVotingSection() {
     
     if (isCurrentPlayer) {
         elements.votingStatus.textContent = "You can't vote on your own statement. Wait for others to vote.";
+    } else {
+        elements.votingStatus.textContent = "Cast your vote now!";
     }
 }
 
@@ -541,9 +565,13 @@ function showRoundResults(data) {
     if (roundResults.isTrue) {
         revealElement.textContent = "That was actually TRUE! 🎯";
         revealElement.className = 'reveal-text truth';
+        document.getElementById('reveal-explanation').textContent = 
+            `${roundResults.currentPlayer.name} was telling the truth about this experience!`;
     } else {
         revealElement.textContent = "That was a LIE! 🕵️";
         revealElement.className = 'reveal-text lie';
+        document.getElementById('reveal-explanation').textContent = 
+            `${roundResults.currentPlayer.name} fooled you with this made-up story!`;
     }
     
     // Show vote breakdown
@@ -558,10 +586,51 @@ function showRoundResults(data) {
         </div>
     `;
     
+    // Show individual votes (if available in data)
+    if (roundResults.individualVotes) {
+        const voteDetailsHtml = roundResults.individualVotes.map(vote => {
+            const isCorrect = (vote.vote === 'truth' && roundResults.isTrue) || 
+                             (vote.vote === 'lie' && !roundResults.isTrue);
+            const correctClass = isCorrect ? 'correct' : 'incorrect';
+            const voteClass = vote.vote === 'truth' ? 'truth' : 'lie';
+            const voteText = vote.vote === 'truth' ? 'TRUTH' : 'LIE';
+            const resultIcon = isCorrect ? '✓' : '✗';
+            
+            return `
+                <div class="vote-detail ${correctClass}">
+                    <span>${escapeHtml(vote.playerName)}</span>
+                    <div>
+                        <span class="vote-badge ${voteClass}">${voteText}</span>
+                        <span style="margin-left: 10px;">${resultIcon}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        document.getElementById('vote-details').innerHTML = voteDetailsHtml;
+    } else {
+        document.getElementById('individual-votes').style.display = 'none';
+    }
+    
+    // Show round scoring
+    if (roundResults.roundScoring) {
+        const scoringHtml = roundResults.roundScoring.map(score => {
+            return `
+                <div class="vote-detail">
+                    <span>${escapeHtml(score.playerName)}</span>
+                    <span class="points-earned">+${score.points} points</span>
+                </div>
+            `;
+        }).join('');
+        
+        document.getElementById('round-points').innerHTML = scoringHtml;
+    } else {
+        document.getElementById('round-scoring').style.display = 'none';
+    }
+    
     // Show next round button or end game
     if (data.gameComplete) {
         elements.nextRoundBtn.textContent = 'View Final Results';
-        // Store the final results data for the button click handler
         elements.nextRoundBtn.dataset.finalResults = JSON.stringify(data.finalResults);
         elements.nextRoundBtn.dataset.action = 'showFinalResults';
     } else {
@@ -693,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
     document.getElementById('vote-truth-btn').addEventListener('click', () => vote('truth'));
     document.getElementById('vote-lie-btn').addEventListener('click', () => vote('lie'));
+    document.getElementById('start-voting-btn').addEventListener('click', startVotingPhase);
     document.getElementById('next-round-btn').addEventListener('click', (e) => {
         const action = e.target.dataset.action;
         if (action === 'showFinalResults') {

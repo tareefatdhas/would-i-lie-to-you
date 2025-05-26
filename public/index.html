@@ -419,16 +419,59 @@
             font-family: serif;
         }
 
-        /* Voting section */
+        /* Voting */
         .voting-section {
             margin-top: 30px;
+            text-align: center;
+        }
+
+        .discussion-phase {
+            background: rgba(255, 193, 7, 0.1);
+            border: 2px solid rgba(255, 193, 7, 0.3);
+            border-radius: var(--border-radius-small);
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .discussion-timer {
+            text-align: center;
+        }
+
+        .discussion-timer h5 {
+            color: #ffc107;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .timer-display {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin: 15px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-small);
+        }
+
+        .voting-phase {
+            background: rgba(0, 123, 255, 0.1);
+            border: 2px solid rgba(0, 123, 255, 0.3);
+            border-radius: var(--border-radius-small);
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .voting-phase h5 {
+            color: #007bff;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
         }
 
         .vote-buttons {
             display: flex;
             gap: 20px;
             justify-content: center;
-            margin: 25px 0;
+            margin: 20px 0;
             flex-wrap: wrap;
         }
 
@@ -470,6 +513,10 @@
             backdrop-filter: blur(10px);
         }
 
+        .reveal-section {
+            margin-bottom: 20px;
+        }
+
         .reveal-text {
             font-size: 1.4rem;
             font-weight: 700;
@@ -483,6 +530,38 @@
 
         .reveal-text.lie {
             color: #dc3545;
+        }
+
+        .reveal-explanation {
+            font-size: 1.2rem;
+            font-style: italic;
+            margin: 25px 0;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-small);
+            border-left: 4px solid #ff6b6b;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .reveal-explanation::before {
+            content: '"';
+            font-size: 3rem;
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: serif;
+        }
+
+        .reveal-explanation::after {
+            content: '"';
+            font-size: 3rem;
+            position: absolute;
+            bottom: -25px;
+            right: 15px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: serif;
         }
 
         .votes-breakdown {
@@ -791,6 +870,64 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        .individual-votes, .round-scoring {
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-small);
+        }
+
+        .individual-votes h4, .round-scoring h4 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .vote-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-small);
+            transition: var(--transition);
+        }
+
+        .vote-detail:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .vote-detail.correct {
+            border-left: 4px solid #28a745;
+        }
+
+        .vote-detail.incorrect {
+            border-left: 4px solid #dc3545;
+        }
+
+        .vote-badge {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .vote-badge.truth {
+            background: #28a745;
+            color: white;
+        }
+
+        .vote-badge.lie {
+            background: #dc3545;
+            color: white;
+        }
+
+        .points-earned {
+            font-weight: 600;
+            color: #ffc107;
+        }
     </style>
 </head>
 <body>
@@ -905,20 +1042,50 @@
                     
                     <div class="voting-section" id="voting-section">
                         <h4>What do you think?</h4>
-                        <div class="vote-buttons">
-                            <button class="btn vote-btn truth" id="vote-truth-btn">
-                                That's the TRUTH! ✓
-                            </button>
-                            <button class="btn vote-btn lie" id="vote-lie-btn">
-                                That's a LIE! ✗
-                            </button>
+                        
+                        <!-- Discussion Phase -->
+                        <div id="discussion-phase" class="discussion-phase">
+                            <div class="discussion-timer">
+                                <h5>💬 Discussion Time!</h5>
+                                <p>Talk it over with your group. Does this sound true or false?</p>
+                                <div class="timer-display" id="discussion-timer">Discussion in progress...</div>
+                                <button class="btn btn-secondary" id="start-voting-btn">Start Voting</button>
+                            </div>
                         </div>
-                        <div class="voting-status" id="voting-status"></div>
+                        
+                        <!-- Voting Phase -->
+                        <div id="voting-phase" class="voting-phase hidden">
+                            <h5>🗳️ Cast Your Votes!</h5>
+                            <div class="vote-buttons">
+                                <button class="btn vote-btn truth" id="vote-truth-btn">
+                                    That's the TRUTH! ✓
+                                </button>
+                                <button class="btn vote-btn lie" id="vote-lie-btn">
+                                    That's a LIE! ✗
+                                </button>
+                            </div>
+                            <div class="voting-status" id="voting-status"></div>
+                        </div>
                     </div>
 
                     <div class="results hidden" id="round-results">
-                        <div class="reveal-text" id="reveal-text"></div>
+                        <div class="reveal-section">
+                            <div class="reveal-text" id="reveal-text"></div>
+                            <div class="reveal-explanation" id="reveal-explanation"></div>
+                        </div>
+                        
                         <div class="votes-breakdown" id="votes-breakdown"></div>
+                        
+                        <div class="individual-votes" id="individual-votes">
+                            <h4>How Everyone Voted:</h4>
+                            <div id="vote-details"></div>
+                        </div>
+                        
+                        <div class="round-scoring" id="round-scoring">
+                            <h4>Points This Round:</h4>
+                            <div id="round-points"></div>
+                        </div>
+                        
                         <div class="game-controls">
                             <button class="btn btn-large" id="next-round-btn">
                                 Next Round
