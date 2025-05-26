@@ -430,6 +430,42 @@ function resetGame() {
 }
 
 function vote(voteType) {
+    if (demoMode.active) {
+        // In demo mode, handle voting differently
+        if (gameState.hasVoted) {
+            showNotification('You have already voted this round', 'warning');
+            return;
+        }
+
+        if (gameState.currentRound && gameState.currentRound.currentPlayer.name === gameState.currentPlayer.name) {
+            showNotification("You can't vote on your own statement", 'error');
+            return;
+        }
+
+        // Record the user's vote
+        gameState.hasVoted = true;
+        disableVoteButtons();
+        showNotification(`You voted: ${voteType.toUpperCase()}!`, 'success');
+        
+        // Add user's vote to demo data
+        demoMode.roundData.votes.set(gameState.currentPlayer.id, voteType);
+        
+        // Update voting status
+        const votesReceived = demoMode.roundData.votes.size;
+        const totalVoters = demoMode.players.filter(p => p.id !== demoMode.roundData.currentPlayer.id).length;
+        updateVotingStatus(votesReceived, totalVoters);
+        
+        // Check if all votes are in
+        if (votesReceived >= totalVoters) {
+            setTimeout(() => {
+                showDemoResults();
+            }, 500);
+        }
+        
+        return;
+    }
+    
+    // Original vote function for real games
     if (gameState.hasVoted) {
         showNotification('You have already voted this round', 'warning');
         return;
@@ -508,6 +544,9 @@ function showVotingSection() {
     elements.roundResults.classList.add('hidden');
     elements.votingStatus.textContent = '';
     
+    // Reset voting state
+    gameState.hasVoted = false;
+    
     // Show discussion phase first
     document.getElementById('discussion-phase').classList.remove('hidden');
     document.getElementById('voting-phase').classList.add('hidden');
@@ -520,7 +559,11 @@ function showVotingSection() {
         document.getElementById('discussion-timer').textContent = "You're the current player - wait for others to discuss and vote!";
         document.getElementById('start-voting-btn').style.display = 'none';
     } else {
-        document.getElementById('discussion-timer').textContent = "Discuss with your group: Truth or Lie?";
+        if (demoMode.active) {
+            document.getElementById('discussion-timer').textContent = "In demo mode: Click 'Start Voting' to see simulated voting!";
+        } else {
+            document.getElementById('discussion-timer').textContent = "Discuss with your group: Truth or Lie?";
+        }
         document.getElementById('start-voting-btn').style.display = 'block';
     }
 }
@@ -757,23 +800,64 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('create-room-btn').addEventListener('click', createRoom);
     document.getElementById('join-room-btn').addEventListener('click', joinRoom);
     document.getElementById('add-truth-btn').addEventListener('click', addTruth);
-    document.getElementById('start-btn').addEventListener('click', startGame);
-    document.getElementById('reset-game-btn').addEventListener('click', resetGame);
-    document.getElementById('leave-room-btn').addEventListener('click', leaveRoom);
-    document.getElementById('vote-truth-btn').addEventListener('click', () => vote('truth'));
-    document.getElementById('vote-lie-btn').addEventListener('click', () => vote('lie'));
-    document.getElementById('start-voting-btn').addEventListener('click', startVotingPhase);
-    document.getElementById('next-round-btn').addEventListener('click', (e) => {
-        const action = e.target.dataset.action;
-        if (action === 'showFinalResults') {
-            const finalResults = JSON.parse(e.target.dataset.finalResults);
-            showFinalResults(finalResults);
+    document.getElementById('start-btn').addEventListener('click', () => {
+        if (demoMode.active) {
+            startDemoGame();
         } else {
-            nextRound();
+            startGame();
         }
     });
-    document.getElementById('play-again-btn').addEventListener('click', playAgain);
-    document.getElementById('go-home-btn').addEventListener('click', goHome);
+    document.getElementById('reset-game-btn').addEventListener('click', resetGame);
+    document.getElementById('leave-room-btn').addEventListener('click', () => {
+        if (demoMode.active) {
+            exitDemoMode();
+        } else {
+            leaveRoom();
+        }
+    });
+    document.getElementById('vote-truth-btn').addEventListener('click', () => vote('truth'));
+    document.getElementById('vote-lie-btn').addEventListener('click', () => vote('lie'));
+    document.getElementById('start-voting-btn').addEventListener('click', () => {
+        if (demoMode.active) {
+            simulateDemoVoting();
+        } else {
+            startVotingPhase();
+        }
+    });
+    document.getElementById('next-round-btn').addEventListener('click', (e) => {
+        if (demoMode.active) {
+            const action = e.target.dataset.action;
+            if (action === 'showFinalResults') {
+                showDemoFinalResults();
+            } else {
+                nextDemoRound();
+            }
+        } else {
+            const action = e.target.dataset.action;
+            if (action === 'showFinalResults') {
+                const finalResults = JSON.parse(e.target.dataset.finalResults);
+                showFinalResults(finalResults);
+            } else {
+                nextRound();
+            }
+        }
+    });
+    document.getElementById('play-again-btn').addEventListener('click', () => {
+        if (demoMode.active) {
+            startDemoMode(); // Restart demo
+        } else {
+            playAgain();
+        }
+    });
+    document.getElementById('go-home-btn').addEventListener('click', () => {
+        if (demoMode.active) {
+            exitDemoMode();
+        } else {
+            goHome();
+        }
+    });
+    document.getElementById('demo-mode-btn').addEventListener('click', startDemoMode);
+    document.getElementById('exit-demo-btn').addEventListener('click', exitDemoMode);
     
     // Character counter for truth input
     elements.truthInput.addEventListener('input', updateCharCount);
@@ -836,4 +920,300 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Initialize connection status
-updateConnectionStatus(); 
+updateConnectionStatus();
+
+// Demo mode functionality
+let demoMode = {
+    active: false,
+    players: [
+        { id: 'demo1', name: 'Alice', isHost: true, truthCount: 4, score: 0, isReady: true, isConnected: true },
+        { id: 'demo2', name: 'Bob', isHost: false, truthCount: 3, score: 0, isReady: true, isConnected: true },
+        { id: 'demo3', name: 'Charlie', isHost: false, truthCount: 5, score: 0, isReady: true, isConnected: true },
+        { id: 'demo4', name: 'Diana', isHost: false, truthCount: 3, score: 0, isReady: true, isConnected: true }
+    ],
+    truths: {
+        'Alice': [
+            "I once got stuck in an elevator with a famous actor for 3 hours",
+            "I can solve a Rubik's cube in under 2 minutes",
+            "I accidentally joined a flash mob in Times Square",
+            "I won a hot dog eating contest in college"
+        ],
+        'Bob': [
+            "I taught myself to juggle during quarantine",
+            "I once met my doppelganger at a coffee shop",
+            "I can identify any dog breed just by looking at it"
+        ],
+        'Charlie': [
+            "I was an extra in a major Hollywood movie",
+            "I can play the ukulele with my feet",
+            "I once drove across the country in a food truck",
+            "I have a collection of over 200 vintage postcards",
+            "I accidentally became a local news anchor for a day"
+        ],
+        'Diana': [
+            "I can speak four languages fluently",
+            "I once climbed a mountain in flip-flops",
+            "I have never broken a bone in my body"
+        ]
+    },
+    lies: [
+        "I once wrestled a bear and won",
+        "I invented a new type of sandwich that became famous",
+        "I can communicate with dolphins using sign language",
+        "I hold the world record for longest continuous yodel",
+        "I was raised by wolves until age 12",
+        "I can taste colors and see sounds",
+        "I once dated a member of the royal family",
+        "I have a pet dragon named Fluffy"
+    ],
+    currentRound: 1,
+    maxRounds: 8,
+    currentPlayerIndex: 0,
+    roundData: null
+};
+
+function startDemoMode() {
+    console.log('Starting demo mode...');
+    demoMode.active = true;
+    
+    // Set up demo game state
+    gameState.currentRoom = 'DEMO01';
+    gameState.currentPlayer = { ...demoMode.players[0] }; // User plays as Alice (host)
+    gameState.isHost = true;
+    gameState.players = [...demoMode.players];
+    gameState.gamePhase = 'setup';
+    
+    showNotification('Demo mode activated! You are Alice (the host)', 'info', 3000);
+    showDemoSetupPhase();
+}
+
+function showDemoSetupPhase() {
+    showScreen('setup-phase');
+    elements.currentRoomCode.textContent = gameState.currentRoom;
+    
+    // Show demo truths for Alice
+    const aliceTruths = demoMode.truths['Alice'];
+    elements.truthsList.innerHTML = aliceTruths.map((truth, index) => `
+        <div class="truth-item">
+            <div class="truth-text">${escapeHtml(truth)}</div>
+        </div>
+    `).join('');
+    
+    // Show exit demo button, hide other buttons
+    document.getElementById('exit-demo-btn').classList.remove('hidden');
+    document.getElementById('leave-room-btn').classList.add('hidden');
+    document.getElementById('reset-game-btn').classList.add('hidden');
+    
+    updatePlayersDisplay();
+    updateStartButton();
+    
+    // Add demo instructions
+    showNotification('All players have submitted their truths. Click "Start Game" to begin!', 'success', 5000);
+}
+
+function startDemoGame() {
+    gameState.gamePhase = 'playing';
+    showGamePhase();
+    showNotification('Demo game started! Watch how the rounds work.', 'success');
+    
+    // Start first round
+    setTimeout(() => {
+        startDemoRound();
+    }, 1000);
+}
+
+function startDemoRound() {
+    const currentPlayerData = demoMode.players[demoMode.currentPlayerIndex];
+    
+    // Decide if this round will be truth or lie (60% truth, 40% lie)
+    const isTrue = Math.random() < 0.6;
+    let statement;
+    
+    if (isTrue && demoMode.truths[currentPlayerData.name].length > 0) {
+        // Use a truth from the current player
+        const truths = demoMode.truths[currentPlayerData.name];
+        statement = truths[Math.floor(Math.random() * truths.length)];
+    } else {
+        // Use a random lie
+        statement = demoMode.lies[Math.floor(Math.random() * demoMode.lies.length)];
+    }
+    
+    demoMode.roundData = {
+        roundNumber: demoMode.currentRound,
+        currentPlayer: currentPlayerData,
+        statement: statement,
+        isTrue: isTrue,
+        votes: new Map()
+    };
+    
+    // Update UI
+    gameState.currentRound = {
+        roundNumber: demoMode.currentRound,
+        currentPlayer: currentPlayerData,
+        statement: statement
+    };
+    
+    updateRoundDisplay();
+    showVotingSection();
+    
+    showNotification(`Round ${demoMode.currentRound}: ${currentPlayerData.name}'s turn!`, 'info');
+}
+
+function simulateDemoVoting() {
+    // Start voting phase
+    startVotingPhase();
+    
+    const currentPlayerData = demoMode.roundData.currentPlayer;
+    const otherPlayers = demoMode.players.filter(p => p.id !== currentPlayerData.id);
+    
+    // If user is not the current player, they need to vote too
+    const userIsCurrentPlayer = currentPlayerData.name === gameState.currentPlayer.name;
+    
+    if (!userIsCurrentPlayer) {
+        showNotification('Cast your vote! Other players are voting too...', 'info');
+    }
+    
+    // Simulate votes from other players (excluding user if they're not current player)
+    const playersToSimulate = userIsCurrentPlayer ? otherPlayers : otherPlayers.filter(p => p.id !== gameState.currentPlayer.id);
+    
+    playersToSimulate.forEach((player, index) => {
+        setTimeout(() => {
+            // Random voting with slight bias toward correct answers (70% accuracy)
+            const correctVote = demoMode.roundData.isTrue ? 'truth' : 'lie';
+            const vote = Math.random() < 0.7 ? correctVote : (correctVote === 'truth' ? 'lie' : 'truth');
+            
+            demoMode.roundData.votes.set(player.id, vote);
+            
+            // Update voting status
+            const votesReceived = demoMode.roundData.votes.size;
+            const totalVoters = otherPlayers.length;
+            updateVotingStatus(votesReceived, totalVoters);
+            
+            // If all votes are in, show results
+            if (votesReceived >= totalVoters) {
+                setTimeout(() => {
+                    showDemoResults();
+                }, 500);
+            }
+        }, (index + 1) * 1500); // Stagger votes by 1.5 seconds each
+    });
+}
+
+function showDemoResults() {
+    const roundData = demoMode.roundData;
+    const votes = Array.from(roundData.votes.values());
+    const truthVotes = votes.filter(v => v === 'truth').length;
+    const lieVotes = votes.filter(v => v === 'lie').length;
+    
+    // Calculate scoring
+    const roundScoring = [];
+    roundData.votes.forEach((vote, playerId) => {
+        const player = demoMode.players.find(p => p.id === playerId);
+        if (player) {
+            const correct = (vote === 'truth' && roundData.isTrue) || (vote === 'lie' && !roundData.isTrue);
+            if (correct) {
+                player.score += 1;
+                roundScoring.push({ playerName: player.name, points: 1 });
+            }
+        }
+    });
+    
+    // Bonus points for current player if they fooled people with a lie
+    if (!roundData.isTrue) {
+        const currentPlayer = demoMode.players.find(p => p.id === roundData.currentPlayer.id);
+        if (currentPlayer) {
+            const bonusPoints = truthVotes; // Points for each person fooled
+            currentPlayer.score += bonusPoints;
+            if (bonusPoints > 0) {
+                roundScoring.push({ playerName: currentPlayer.name, points: bonusPoints });
+            }
+        }
+    }
+    
+    // Create individual votes data
+    const individualVotes = [];
+    roundData.votes.forEach((vote, playerId) => {
+        const player = demoMode.players.find(p => p.id === playerId);
+        if (player) {
+            individualVotes.push({
+                playerName: player.name,
+                vote: vote
+            });
+        }
+    });
+    
+    // Show results
+    const resultsData = {
+        roundResults: {
+            statement: roundData.statement,
+            isTrue: roundData.isTrue,
+            currentPlayer: roundData.currentPlayer,
+            truthVotes: truthVotes,
+            lieVotes: lieVotes,
+            individualVotes: individualVotes,
+            roundScoring: roundScoring
+        },
+        scoreboard: [...demoMode.players].sort((a, b) => b.score - a.score),
+        gameComplete: demoMode.currentRound >= demoMode.maxRounds
+    };
+    
+    showRoundResults(resultsData);
+    updateScoreboard(resultsData.scoreboard);
+    
+    if (resultsData.gameComplete) {
+        // Game is complete, show final results
+        setTimeout(() => {
+            showDemoFinalResults();
+        }, 3000);
+    }
+}
+
+function nextDemoRound() {
+    if (demoMode.currentRound >= demoMode.maxRounds) {
+        showDemoFinalResults();
+        return;
+    }
+    
+    demoMode.currentRound++;
+    demoMode.currentPlayerIndex = (demoMode.currentPlayerIndex + 1) % demoMode.players.length;
+    
+    setTimeout(() => {
+        startDemoRound();
+    }, 1000);
+}
+
+function showDemoFinalResults() {
+    const finalScores = [...demoMode.players].sort((a, b) => b.score - a.score);
+    const winner = finalScores[0];
+    
+    const finalResults = {
+        winner: winner,
+        finalScores: finalScores,
+        totalRounds: demoMode.currentRound,
+        gameStats: {
+            totalPlayers: demoMode.players.length
+        }
+    };
+    
+    showFinalResults(finalResults);
+    showNotification('Demo complete! This is how a full game works.', 'success', 5000);
+}
+
+function exitDemoMode() {
+    demoMode.active = false;
+    demoMode.currentRound = 1;
+    demoMode.currentPlayerIndex = 0;
+    demoMode.roundData = null;
+    
+    // Reset scores
+    demoMode.players.forEach(player => player.score = 0);
+    
+    // Restore normal button visibility
+    document.getElementById('exit-demo-btn').classList.add('hidden');
+    document.getElementById('leave-room-btn').classList.remove('hidden');
+    document.getElementById('reset-game-btn').classList.remove('hidden');
+    
+    gameState.reset();
+    showScreen('home-screen');
+    showNotification('Exited demo mode', 'info');
+} 
